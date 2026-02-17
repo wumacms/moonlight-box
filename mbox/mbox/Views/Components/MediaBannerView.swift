@@ -29,6 +29,11 @@ struct MediaBannerView: View {
             }
         }
         .frame(height: 220)
+        .cornerRadius(AppTheme.cornerRadius)
+        .overlay(
+            RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                .stroke(AppTheme.borderColor(colorScheme), lineWidth: 1)
+        )
         .clipped()
     }
 }
@@ -42,7 +47,7 @@ private struct ImageBannerView: View {
             switch phase {
             case .empty:
                 Rectangle()
-                    .fill(AppTheme.deepBlue(colorScheme).opacity(0.2))
+                    .fill(AppTheme.secondaryBackgroundColor(colorScheme))
                     .overlay { ProgressView() }
             case .success(let image):
                 image
@@ -50,8 +55,12 @@ private struct ImageBannerView: View {
                     .aspectRatio(contentMode: .fill)
             case .failure:
                 Rectangle()
-                    .fill(AppTheme.deepBlue(colorScheme).opacity(0.2))
-                    .overlay { Image(systemName: "photo").font(.largeTitle) }
+                    .fill(AppTheme.secondaryBackgroundColor(colorScheme))
+                    .overlay { 
+                        Image(systemName: "photo")
+                            .font(.largeTitle)
+                            .foregroundStyle(AppTheme.secondaryTextColor(colorScheme))
+                    }
             @unknown default:
                 EmptyView()
             }

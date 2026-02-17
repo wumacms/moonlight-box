@@ -25,14 +25,14 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AppTheme.moonSilver(colorScheme)
+                AppTheme.backgroundColor(colorScheme)
                     .ignoresSafeArea()
                 ScrollView {
-                    LazyVStack(spacing: 16) {
+                    LazyVStack(spacing: 20) {
                         contentView
                     }
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 16)
+                    .padding(.vertical, 20)
                 }
             }
             .navigationTitle("月光宝盒")
@@ -91,7 +91,7 @@ struct HomeView: View {
 
     private func errorView(_ message: String) -> some View {
         Text(message)
-            .foregroundStyle(AppTheme.fieldError)
+            .foregroundStyle(AppTheme.errorColor(colorScheme))
             .padding()
     }
 
@@ -103,18 +103,31 @@ struct HomeView: View {
         if let warningMessage {
             Text(warningMessage)
                 .font(.caption)
-                .foregroundStyle(AppTheme.fieldError)
+                .foregroundStyle(AppTheme.errorColor(colorScheme))
                 .padding(.top, 8)
         }
     }
 
     @ViewBuilder
     private func sectionView(_ section: HomeSection) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text(section.title)
-                .font(.headline)
-                .foregroundStyle(.primary)
-                .padding(.horizontal, 4)
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text(section.title)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(AppTheme.primaryTextColor(colorScheme))
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(AppTheme.secondaryBackgroundColor(colorScheme))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(AppTheme.borderColor(colorScheme), lineWidth: 1)
+                    )
+                
+                Rectangle()
+                    .fill(AppTheme.borderColor(colorScheme))
+                    .frame(height: 1)
+            }
+            .padding(.horizontal, 4)
 
             if section.items.isEmpty {
                 Text("暂无数据")
@@ -133,8 +146,8 @@ struct HomeView: View {
     }
 
     private func cardsGrid(_ items: [HomeListEntry]) -> some View {
-        let adaptiveColumns = [GridItem(.adaptive(minimum: itemMinWidth), spacing: gridSpacing)]
-        return LazyVGrid(columns: adaptiveColumns, spacing: gridSpacing) {
+        let adaptiveColumns = [GridItem(.adaptive(minimum: itemMinWidth), spacing: 16)]
+        return LazyVGrid(columns: adaptiveColumns, spacing: 16) {
             ForEach(items) { item in
                 itemButton(item)
             }

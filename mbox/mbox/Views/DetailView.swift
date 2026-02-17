@@ -22,7 +22,7 @@ struct DetailView: View {
 
     var body: some View {
         ZStack {
-            AppTheme.moonSilver(colorScheme)
+            AppTheme.backgroundColor(colorScheme)
                 .ignoresSafeArea()
             if loading && detail == nil {
                 VStack {
@@ -40,8 +40,8 @@ struct DetailView: View {
                         }
                         VStack(alignment: .leading, spacing: 12) {
                             Text(d.safeTitle)
-                                .font(.title2)
-                                .fontWeight(.bold)
+                                .font(.system(size: 24, weight: .bold))
+                                .foregroundStyle(AppTheme.primaryTextColor(colorScheme))
                             ExtendInfoView(extendInfo: d.extendInfo)
                             if componentType == "chart" {
                                 chartDetailView
@@ -160,7 +160,9 @@ struct MarkdownContentView: View {
 
     var body: some View {
         Text(attributedContent)
-            .font(.body)
+            .font(.system(size: 15))
+            .foregroundStyle(AppTheme.primaryTextColor(colorScheme))
+            .lineSpacing(4)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -182,6 +184,7 @@ struct MarkdownContentView: View {
                 result += AttributedString(remaining[..<b.lowerBound])
                 var bold = AttributedString(remaining[b.upperBound..<e.lowerBound])
                 bold.inlinePresentationIntent = .stronglyEmphasized
+                bold.foregroundColor = AppTheme.primaryTextColor(colorScheme)
                 result += bold
                 remaining = String(remaining[e.upperBound...])
             } else {
@@ -201,82 +204,83 @@ struct MarkdownContentView: View {
 
 struct ChartListTableView: View {
     let rows: [(label: String, value: String)]
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("图表列表数据")
-                .font(.headline)
-            tableView
-        }
-        .padding(.vertical, 8)
-    }
-
-    private var tableView: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 0) {
-                Text("维度")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-                Divider()
-                Text("数值")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .frame(width: 120, alignment: .trailing)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 10)
-            }
-            .background(Color.secondary.opacity(0.08))
-
-            Divider()
-
-            if rows.isEmpty {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("详细数据")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(AppTheme.primaryTextColor(colorScheme))
+            
+            VStack(spacing: 0) {
+                // Header
                 HStack(spacing: 0) {
-                    Text("暂无列表数据")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                    Text("维度")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(AppTheme.primaryTextColor(colorScheme))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 12)
-                        .padding(.vertical, 12)
+                        .padding(.vertical, 10)
+                    
                     Divider()
-                    Text("-")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .background(AppTheme.borderColor(colorScheme))
+                    
+                    Text("数值")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(AppTheme.primaryTextColor(colorScheme))
                         .frame(width: 120, alignment: .trailing)
                         .padding(.horizontal, 12)
-                        .padding(.vertical, 12)
+                        .padding(.vertical, 10)
                 }
-            } else {
-                ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
-                    HStack(spacing: 0) {
-                        Text(row.label)
-                            .font(.subheadline)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
-                        Divider()
-                        Text(row.value)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .frame(width: 120, alignment: .trailing)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
-                    }
-                    .background(index.isMultiple(of: 2) ? Color.clear : Color.secondary.opacity(0.04))
+                .background(AppTheme.secondaryBackgroundColor(colorScheme))
 
-                    if index < rows.count - 1 {
-                        Divider()
+                Divider()
+                    .background(AppTheme.borderColor(colorScheme))
+
+                if rows.isEmpty {
+                    HStack {
+                        Text("暂无列表数据")
+                            .font(.system(size: 13))
+                            .foregroundStyle(AppTheme.secondaryTextColor(colorScheme))
+                            .padding(12)
+                        Spacer()
+                    }
+                } else {
+                    ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
+                        HStack(spacing: 0) {
+                            Text(row.label)
+                                .font(.system(size: 13))
+                                .foregroundStyle(AppTheme.primaryTextColor(colorScheme))
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 10)
+                            
+                            Divider()
+                                .background(AppTheme.borderColor(colorScheme))
+                            
+                            Text(row.value)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(AppTheme.accentColor(colorScheme))
+                                .frame(width: 120, alignment: .trailing)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 10)
+                        }
+                        .background(index.isMultiple(of: 2) ? AppTheme.backgroundColor(colorScheme) : AppTheme.secondaryBackgroundColor(colorScheme).opacity(0.3))
+
+                        if index < rows.count - 1 {
+                            Divider()
+                                .background(AppTheme.borderColor(colorScheme))
+                        }
                     }
                 }
             }
+            .cornerRadius(AppTheme.cornerRadius)
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                    .stroke(AppTheme.borderColor(colorScheme), lineWidth: 1)
+            )
         }
-        .overlay(
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .padding(.vertical, 8)
     }
 }
 

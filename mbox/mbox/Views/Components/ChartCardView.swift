@@ -2,7 +2,7 @@
 //  ChartCardView.swift
 //  mbox
 //
-//  图表组件卡片：根据 chartType 渲染折线图/柱状图/饼图
+//  GitHub 风格的图表组件卡片
 //
 
 import SwiftUI
@@ -19,29 +19,41 @@ struct ChartCardView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            chartView
-                .frame(height: 120)
+        VStack(alignment: .leading, spacing: 0) {
+            // 图表预览区域
+            ZStack {
+                chartView
+                    .frame(height: 120)
+                    .padding(.top, 12)
+                    .padding(.horizontal, 12)
+            }
+            .background(AppTheme.secondaryBackgroundColor(colorScheme).opacity(0.3))
+            
+            Divider()
+                .background(AppTheme.borderColor(colorScheme))
+            
+            // 标题文本区域
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.uiTitle)
-                    .font(.headline)
-                    .lineLimit(2)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(AppTheme.accentColor(colorScheme))
+                    .lineLimit(1)
+                
                 if !item.uiSubtitle.isEmpty {
                     Text(item.uiSubtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
+                        .font(.system(size: 12))
+                        .foregroundStyle(AppTheme.secondaryTextColor(colorScheme))
+                        .lineLimit(1)
                 }
             }
+            .padding(12)
         }
-        .padding(AppTheme.cardPadding)
-        .background(AppTheme.cardBackground())
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius))
+        .githubCardStyle(colorScheme: colorScheme)
     }
 
     @ViewBuilder
     private var chartView: some View {
-        let accent = AppTheme.deepBlue(colorScheme)
+        let accent = AppTheme.accentColor(colorScheme)
         if chartData.isEmpty {
             VStack(spacing: 6) {
                 Image(systemName: "chart.xyaxis.line")

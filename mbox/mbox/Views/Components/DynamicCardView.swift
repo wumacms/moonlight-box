@@ -2,7 +2,7 @@
 //  DynamicCardView.swift
 //  mbox
 //
-//  动态解析后的列表项卡片（圆角 12pt）
+//  GitHub 风格的列表项卡片
 //
 
 import SwiftUI
@@ -13,60 +13,84 @@ struct DynamicCardView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 0) {
+            // 图片部分
             if let urlString = item.uiImage, !urlString.isEmpty, let url = URL(string: urlString) {
                 ZStack {
                     AsyncImage(url: url) { phase in
                         switch phase {
                         case .empty:
-                            ProgressView()
-                                .frame(height: 120)
-                                .frame(maxWidth: .infinity)
+                            Rectangle()
+                                .fill(AppTheme.secondaryBackgroundColor(colorScheme))
+                                .overlay(ProgressView())
+                                .frame(height: 140)
                         case .success(let image):
                             image
                                 .resizable()
                                 .aspectRatio(contentMode: .fill)
+                                .frame(height: 140)
                         case .failure:
-                            Image(systemName: "photo")
-                                .font(.largeTitle)
-                                .foregroundStyle(AppTheme.deepBlue(colorScheme))
-                                .frame(height: 120)
-                                .frame(maxWidth: .infinity)
+                            Rectangle()
+                                .fill(AppTheme.secondaryBackgroundColor(colorScheme))
+                                .overlay(
+                                    Image(systemName: "photo")
+                                        .foregroundStyle(AppTheme.secondaryTextColor(colorScheme))
+                                )
+                                .frame(height: 140)
                         @unknown default:
                             EmptyView()
                         }
                     }
                     if showPlayButton {
-                        Image(systemName: "play.circle.fill")
-                            .font(.system(size: 44))
+                        Image(systemName: "play.fill")
+                            .font(.system(size: 24))
                             .foregroundStyle(.white)
-                            .shadow(color: .black.opacity(0.5), radius: 4, x: 0, y: 2)
+                            .padding(12)
+                            .background(.black.opacity(0.6))
+                            .clipShape(Circle())
                     }
                 }
-                .frame(height: 120)
+                .frame(height: 140)
                 .clipped()
-                .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius))
+                
+                Divider()
+                    .background(AppTheme.borderColor(colorScheme))
             }
-            VStack(alignment: .leading, spacing: 4) {
-                if let badge = item.uiBadge, !badge.isEmpty {
-                    Text(badge)
-                        .font(.caption)
-                        .foregroundStyle(AppTheme.deepBlue(colorScheme))
+            
+            // 内容部分
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(alignment: .top) {
+                    Text(item.uiTitle)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(AppTheme.accentColor(colorScheme))
+                        .lineLimit(1)
+                    
+                    Spacer()
+                    
+                    if let badge = item.uiBadge, !badge.isEmpty {
+                        Text(badge)
+                            .font(.system(size: 11, weight: .medium))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 2)
+                            .overlay(
+                                Capsule()
+                                    .stroke(AppTheme.borderColor(colorScheme), lineWidth: 1)
+                            )
+                            .foregroundStyle(AppTheme.secondaryTextColor(colorScheme))
+                    }
                 }
-                Text(item.uiTitle)
-                    .font(.headline)
-                    .lineLimit(2)
+                
                 if !item.uiSubtitle.isEmpty {
                     Text(item.uiSubtitle)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(.system(size: 13))
+                        .foregroundStyle(AppTheme.secondaryTextColor(colorScheme))
                         .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            .padding(12)
         }
-        .padding(AppTheme.cardPadding)
-        .background(AppTheme.cardBackground())
-        .clipShape(RoundedRectangle(cornerRadius: AppTheme.cornerRadius))
+        .githubCardStyle(colorScheme: colorScheme)
     }
 }
 

@@ -20,7 +20,7 @@ struct ConfigView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                AppTheme.moonSilver(colorScheme)
+                AppTheme.backgroundColor(colorScheme)
                     .ignoresSafeArea()
                 List {
                     ForEach(configs, id: \.id) { config in
@@ -196,7 +196,7 @@ struct APIConfigFormView: View {
                     .disabled(config.listAPIURL.isEmpty || testLoading)
                     if let err = testError {
                         Text(err)
-                            .foregroundStyle(AppTheme.fieldError)
+                            .foregroundStyle(AppTheme.errorColor(colorScheme))
                             .font(.caption)
                     }
                     if !testItems.isEmpty {
@@ -265,11 +265,12 @@ struct FieldMappingRow: View {
     let error: Bool
     let onCommit: (String) -> Void
     @State private var text: String = ""
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         HStack {
             Text(uiKey)
-                .foregroundStyle(error ? AppTheme.fieldError : .primary)
+                .foregroundStyle(error ? AppTheme.errorColor(colorScheme) : AppTheme.primaryTextColor(colorScheme))
             TextField("后端 Key", text: $text)
                 .textInputAutocapitalization(.never)
                 .onChange(of: text) { _, new in onCommit(new) }

@@ -43,20 +43,26 @@ struct ExtendInfoView: View {
 
     var body: some View {
         if !displayKeys.isEmpty {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 10) {
                 ForEach(displayKeys, id: \.0) { label, value in
-                    HStack(alignment: .top, spacing: 8) {
+                    HStack(alignment: .top, spacing: 12) {
                         Text(label)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundStyle(AppTheme.deepBlue(colorScheme))
-                            .frame(width: 72, alignment: .leading)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(AppTheme.secondaryTextColor(colorScheme))
+                            .frame(width: 80, alignment: .leading)
                         Text(value)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .font(.system(size: 13))
+                            .foregroundStyle(AppTheme.primaryTextColor(colorScheme))
                     }
                 }
             }
+            .padding(12)
+            .background(AppTheme.secondaryBackgroundColor(colorScheme).opacity(0.5))
+            .cornerRadius(AppTheme.cornerRadius)
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.cornerRadius)
+                    .stroke(AppTheme.borderColor(colorScheme), lineWidth: 1)
+            )
             .padding(.vertical, 8)
         }
     }
