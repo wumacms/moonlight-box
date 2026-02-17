@@ -14,6 +14,8 @@ struct DetailView: View {
     var componentType: String = "card"
     var detailMapping: [String: String] = [:]
     var chartListDataJSON: String? = nil
+    var httpMethod: String = "GET"
+    var headers: [String: String] = [:]
     @State private var detail: JSONValue?
     @State private var loading = true
     @State private var errorMessage: String?
@@ -113,7 +115,12 @@ struct DetailView: View {
         errorMessage = nil
         Task {
             do {
-                let result = try await apiService.fetchDetail(urlString: detailURL, id: itemId)
+                let result = try await apiService.fetchDetail(
+                    urlString: detailURL,
+                    id: itemId,
+                    method: httpMethod,
+                    headers: headers
+                )
                 await MainActor.run {
                     detail = result
                     loading = false

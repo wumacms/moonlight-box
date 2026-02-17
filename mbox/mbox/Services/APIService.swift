@@ -39,14 +39,44 @@ final class APIService {
     ///   - urlString: 列表 API URL（不含 query）
     ///   - page: 页码，默认 1
     ///   - size: 每页条数，默认 10
-    func fetchList(urlString: String, page: Int = 1, size: Int = 10) async throws -> (items: [[String: Any]], total: Int) {
+    ///   - method: HTTP 方法，默认 "GET"
+    ///   - headers: 自定义 Header
+    func fetchList(
+        urlString: String,
+        page: Int = 1,
+        size: Int = 10,
+        method: String = "GET",
+        headers: [String: String] = [:]
+    ) async throws -> (items: [[String: Any]], total: Int) {
+        let isPost = method.uppercased() == "POST"
         guard var components = URLComponents(string: urlString) else { throw APIError.invalidURL }
-        components.queryItems = (components.queryItems ?? []) + [
-            URLQueryItem(name: "page", value: "\(page)"),
-            URLQueryItem(name: "size", value: "\(size)")
-        ]
-        guard let url = components.url else { throw APIError.invalidURL }
-        let (data, response) = try await session.data(from: url)
+        
+        var request: URLRequest
+        
+        if isPost {
+            guard let url = components.url else { throw APIError.invalidURL }
+            request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            
+            let body: [String: Any] = ["page": page, "size": size]
+            request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        } else {
+            components.queryItems = (components.queryItems ?? []) + [
+                URLQueryItem(name: "page", value: "\(page)"),
+                URLQueryItem(name: "size", value: "\(size)")
+            ]
+            guard let url = components.url else { throw APIError.invalidURL }
+            request = URLRequest(url: url)
+            request.httpMethod = "GET"
+        }
+        
+        // 应用自定义 Header
+        for (key, value) in headers {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        
+        let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw APIError.invalidResponse }
         guard (200...299).contains(http.statusCode) else { throw APIError.httpStatus(http.statusCode) }
         let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] ?? [:]
@@ -64,16 +94,41 @@ final class APIService {
         return (dataArray, total)
     }
 
-    /// 请求详情：GET {url}?id={id}
-    func fetchDetail(urlString: String, id: String) async throws -> JSONValue {
+    /// 请求详情：GET {url}?id={id} 或 POST {url} Body: {id: id}
+    func fetchDetail(
+        urlString: String,
+        id: String,
+        method: String = "GET",
+        headers: [String: String] = [:]
+    ) async throws -> JSONValue {
+        let isPost = method.uppercased() == "POST"
         guard var components = URLComponents(string: urlString) else { throw APIError.invalidURL }
-        // 保留配置中已有 query，仅覆盖/追加 id，避免误写死 id=1 或丢失其他参数
-        var queryItems = components.queryItems ?? []
-        queryItems.removeAll { $0.name == "id" }
-        queryItems.append(URLQueryItem(name: "id", value: id))
-        components.queryItems = queryItems
-        guard let url = components.url else { throw APIError.invalidURL }
-        let (data, response) = try await session.data(from: url)
+        
+        var request: URLRequest
+        
+        if isPost {
+            guard let url = components.url else { throw APIError.invalidURL }
+            request = URLRequest(url: url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = try? JSONSerialization.data(withJSONObject: ["id": id])
+        } else {
+            // 保留配置中已有 query，仅覆盖/追加 id，避免误写死 id=1 或丢失其他参数
+            var queryItems = components.queryItems ?? []
+            queryItems.removeAll { $0.name == "id" }
+            queryItems.append(URLQueryItem(name: "id", value: id))
+            components.queryItems = queryItems
+            guard let url = components.url else { throw APIError.invalidURL }
+            request = URLRequest(url: url)
+            request.httpMethod = "GET"
+        }
+        
+        // 应用自定义 Header
+        for (key, value) in headers {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
+        
+        let (data, response) = try await session.data(for: request)
         guard let http = response as? HTTPURLResponse else { throw APIError.invalidResponse }
         guard (200...299).contains(http.statusCode) else { throw APIError.httpStatus(http.statusCode) }
         let res = try decoder.decode(DetailResponse.self, from: data)

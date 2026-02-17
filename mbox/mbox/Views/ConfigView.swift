@@ -52,16 +52,33 @@ struct ConfigView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
                         let new = APIConfig()
-                        modelContext.insert(new)
+                        // 不再立即 modelContext.insert(new)，而是先进入编辑
                         editingConfig = new
-                        try? modelContext.save()
                     } label: {
                         Image(systemName: "plus.circle.fill")
                     }
                 }
             }
             .sheet(item: $editingConfig) { config in
-                APIConfigFormView(config: config, onDismiss: { editingConfig = nil })
+                APIConfigFormView(config: config, onDismiss: { configToSave in
+                    if let configToSave {
+                        // 检查必填项：如果名称和 URL 都为空，视为无效，不保留
+                        if configToSave.name.isEmpty && configToSave.listAPIURL.isEmpty {
+                            // 如果是新创建但未保存的（不在数据库中），则无需操作
+                            // 如果已在数据库中，则删除
+                            if configs.contains(where: { $0.id == configToSave.id }) {
+                                modelContext.delete(configToSave)
+                            }
+                        } else {
+                            // 有效配置：若是新配置则插入
+                            if !configs.contains(where: { $0.id == configToSave.id }) {
+                                modelContext.insert(configToSave)
+                            }
+                            try? modelContext.save()
+                        }
+                    }
+                    editingConfig = nil
+                })
             }
             .alert("确认删除配置？", isPresented: $showDeleteConfirm) {
                 Button("取消", role: .cancel) {
@@ -104,10 +121,20 @@ struct ConfigView: View {
 
 /// 表单项：API 名称、列表 URL、详情 URL、组件类型、字段映射；容错红色提示 + 测试解析
 struct APIConfigFormView: View {
-    @Bindable var config: APIConfig
-    var onDismiss: () -> Void
+    var config: APIConfig
+    var onDismiss: (APIConfig?) -> Void
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    
+    // --- 临时状态变量 ---
+    @State private var name: String = ""
+    @State private var listAPIURL: String = ""
+    @State private var detailAPIURL: String = ""
+    @State private var componentType: String = "card"
+    @State private var httpMethod: String = "GET"
+    @State private var listMapping: [String: String] = [:]
+    @State private var detailMapping: [String: String] = [:]
+    
     @State private var testItems: [ListItemModel] = []
     @State private var testLoading = false
     @State private var testError: String?
@@ -115,6 +142,8 @@ struct APIConfigFormView: View {
     @State private var detailAvailablePaths: [String] = []
     @State private var listSuggestionsLoading = false
     @State private var detailSuggestionsLoading = false
+    @State private var headersText: String = "" // 用于编辑 Header 的 JSON 字符串
+    @State private var headersError: String?
     @Environment(\.colorScheme) private var colorScheme
 
     private let apiService = APIService()
@@ -123,33 +152,80 @@ struct APIConfigFormView: View {
         NavigationStack {
             Form {
                 Section("基本信息") {
-                    TextField("配置名称", text: Binding(
-                        get: { config.name },
-                        set: { config.name = $0 }
-                    ))
-                    TextField("列表 API URL *", text: Binding(
-                        get: { config.listAPIURL },
-                        set: { config.listAPIURL = $0 }
-                    ))
+                    TextField("配置名称", text: $name)
+                    TextField("列表 API URL *", text: $listAPIURL)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    TextField("详情 API URL *", text: Binding(
-                        get: { config.detailAPIURL ?? "" },
-                        set: { config.detailAPIURL = $0.isEmpty ? nil : $0 }
-                    ))
+                    TextField("详情 API URL *", text: $detailAPIURL)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    Picker("组件类型", selection: Binding(
-                        get: { config.componentType },
-                        set: { newType in
-                            config.componentType = newType
-                            config.listMapping = APIConfig.defaultListMapping(for: newType)
-                            config.detailMapping = APIConfig.defaultDetailMapping()
-                        }
-                    )) {
+                    Picker("组件类型", selection: $componentType) {
                         Text("图文列表").tag("card")
                         Text("视频列表").tag("video")
                         Text("图表列表").tag("chart")
+                    }
+                }
+                
+                Section("请求设置") {
+                    Picker("HTTP 方法", selection: $httpMethod) {
+                        Text("GET").tag("GET")
+                        Text("POST").tag("POST")
+                    }
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("自定义 Header (JSON)")
+                                .font(.subheadline)
+                            Spacer()
+                            if let error = headersError {
+                                Text(error)
+                                    .font(.caption)
+                                    .foregroundStyle(AppTheme.errorColor(colorScheme))
+                            }
+                        }
+                        
+                        TextEditor(text: $headersText)
+                            .frame(height: 100)
+                            .font(.system(.body, design: .monospaced))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.secondary.opacity(0.2), lineWidth: 1)
+                            )
+                            .onAppear {
+                                if let data = try? JSONEncoder().encode(headers),
+                                   let json = String(data: data, encoding: .utf8) {
+                                    headersText = json
+                                }
+                            }
+                            .onChange(of: headersText) { _, newValue in
+                                validateAndSaveHeaders(newValue)
+                            }
+                    }
+                    .padding(.vertical, 4)
+                }
+                .onAppear {
+                    // 初始化临时状态
+                    name = config.name
+                    listAPIURL = config.listAPIURL
+                    detailAPIURL = config.detailAPIURL ?? ""
+                    componentType = config.componentType
+                    httpMethod = config.httpMethod
+                    listMapping = config.listMapping
+                    detailMapping = config.detailMapping
+                    
+                    if let data = try? JSONEncoder().encode(config.headers),
+                       let json = String(data: data, encoding: .utf8) {
+                        headersText = json
+                    }
+                }
+                .onChange(of: componentType) { _, newType in
+                    // 类型切换时重置映射建议
+                    if newType != config.componentType {
+                        listMapping = APIConfig.defaultListMapping(for: newType)
+                        detailMapping = APIConfig.defaultDetailMapping()
+                    } else {
+                        listMapping = config.listMapping
+                        detailMapping = config.detailMapping
                     }
                 }
 
@@ -157,13 +233,11 @@ struct APIConfigFormView: View {
                     ForEach(APIConfig.standardListKeys, id: \.self) { uiKey in
                         FieldMappingRow(
                             uiKey: uiKey,
-                            backendKey: config.listMapping[uiKey] ?? "",
+                            backendKey: listMapping[uiKey] ?? "",
                             availablePaths: listAvailablePaths,
                             error: missingListKey(uiKey)
                         ) { newValue in
-                            var map = config.listMapping
-                            map[uiKey] = newValue
-                            config.listMapping = map
+                            listMapping[uiKey] = newValue
                         }
                     }
                 } header: {
@@ -183,18 +257,16 @@ struct APIConfigFormView: View {
                     }
                 }
 
-                if config.componentType != "chart" {
+                if componentType != "chart" {
                     Section {
                         ForEach(APIConfig.standardDetailKeys, id: \.self) { uiKey in
                             FieldMappingRow(
                                 uiKey: uiKey,
-                                backendKey: config.detailMapping[uiKey] ?? "",
+                                backendKey: detailMapping[uiKey] ?? "",
                                 availablePaths: detailAvailablePaths,
                                 error: false
                             ) { newValue in
-                                var map = config.detailMapping
-                                map[uiKey] = newValue
-                                config.detailMapping = map
+                                detailMapping[uiKey] = newValue
                             }
                         }
                     } header: {
@@ -215,18 +287,16 @@ struct APIConfigFormView: View {
                     }
                 }
 
-                if config.componentType == "chart" {
+                if componentType == "chart" {
                     Section {
                         ForEach(APIConfig.standardChartKeys, id: \.self) { uiKey in
                             FieldMappingRow(
                                 uiKey: uiKey,
-                                backendKey: config.detailMapping[uiKey] ?? "",
+                                backendKey: detailMapping[uiKey] ?? "",
                                 availablePaths: detailAvailablePaths,
                                 error: false
                             ) { newValue in
-                                var map = config.detailMapping
-                                map[uiKey] = newValue
-                                config.detailMapping = map
+                                detailMapping[uiKey] = newValue
                             }
                         }
                     } header: {
@@ -287,18 +357,60 @@ struct APIConfigFormView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("完成") {
-                        try? modelContext.save()
+                    Button("取消") {
                         dismiss()
-                        onDismiss()
+                        onDismiss(nil)
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("保存") {
+                        validateAndSaveHeaders(headersText)
+                        // 将状态写回模型
+                        config.name = name
+                        config.listAPIURL = listAPIURL
+                        config.detailAPIURL = detailAPIURL.isEmpty ? nil : detailAPIURL
+                        config.componentType = componentType
+                        config.httpMethod = httpMethod
+                        config.listMapping = listMapping
+                        config.detailMapping = detailMapping
+                        
+                        dismiss()
+                        onDismiss(config)
                     }
                 }
             }
         }
     }
 
+    private func validateAndSaveHeaders(_ json: String) {
+        let trimmed = json.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty {
+            // 注意：这里更新临时状态变量（如果有需要的话），或者在此处直接处理 config.headers
+            // 为了保持一致性，我们在保存时统一写回
+            headersError = nil
+            return
+        }
+        
+        guard let data = trimmed.data(using: .utf8),
+              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: String] else {
+            headersError = "JSON 格式非法或非 [String: String]"
+            return
+        }
+        
+        // 验证通过，等待点击“保存”时应用
+        headersError = nil
+    }
+
+    private var headers: [String: String] {
+        guard let data = headersText.data(using: .utf8),
+              let dict = try? JSONSerialization.jsonObject(with: data) as? [String: String] else {
+            return [:]
+        }
+        return dict
+    }
+
     private func missingListKey(_ uiKey: String) -> Bool {
-        let key = config.listMapping[uiKey] ?? ""
+        let key = listMapping[uiKey] ?? ""
         return key.trimmingCharacters(in: .whitespaces).isEmpty && uiKey == "ui_id"
     }
 
@@ -308,8 +420,12 @@ struct APIConfigFormView: View {
         testLoading = true
         Task {
             do {
-                let (raw, _) = try await apiService.fetchList(urlString: config.listAPIURL)
-                let list = MappingEngine.parseList(rawItems: raw, fieldMapping: config.listMapping)
+                let (raw, _) = try await apiService.fetchList(
+                    urlString: listAPIURL,
+                    method: httpMethod,
+                    headers: headers
+                )
+                let list = MappingEngine.parseList(rawItems: raw, fieldMapping: listMapping)
                 await MainActor.run {
                     testItems = list
                     testLoading = false
@@ -332,9 +448,13 @@ struct APIConfigFormView: View {
         
         Task {
             do {
-                let url = isList ? config.listAPIURL : (config.detailAPIURL ?? "")
+                let url = isList ? listAPIURL : detailAPIURL
                 if isList {
-                    let (raw, _) = try await apiService.fetchList(urlString: url)
+                    let (raw, _) = try await apiService.fetchList(
+                        urlString: url,
+                        method: httpMethod,
+                        headers: headers
+                    )
                     if let first = raw.first {
                         let paths = JsonPathService.shared.generatePaths(from: first)
                         await MainActor.run {
@@ -346,16 +466,22 @@ struct APIConfigFormView: View {
                     }
                 } else {
                     // 对于详情 API，我们需要一个示例 ID 来获取结构。
-                    // 假设我们可以先从列表 API 获取第一个 ID，或者要求用户先配置列表映射。
-                    // 为了简化，这里尝试请求列表 API 获取一个 ID 来请求详情 API。
-                    let (listRaw, _) = try await apiService.fetchList(urlString: config.listAPIURL)
+                    let (listRaw, _) = try await apiService.fetchList(
+                        urlString: listAPIURL,
+                        method: httpMethod,
+                        headers: headers
+                    )
                     if let firstItemDict = listRaw.first {
-                        // 使用 ListItemModel.from 自动处理 JsonPath 等复杂的 ID 提取逻辑
-                        let listItem = ListItemModel.from(json: firstItemDict, mapping: config.listMapping)
+                        let listItem = ListItemModel.from(json: firstItemDict, mapping: listMapping)
                         let sampleId = listItem.id
                         
                         if !sampleId.isEmpty {
-                            let detailRaw = try await apiService.fetchDetail(urlString: url, id: sampleId)
+                            let detailRaw = try await apiService.fetchDetail(
+                                urlString: url,
+                                id: sampleId,
+                                method: httpMethod,
+                                headers: headers
+                            )
                             // 关键修复：使用 anyValue 将 JSONValue 转换为原生的 [String: Any] 结构
                             // 这样 generatePaths 才能递归提取所有嵌套路径（如 $.chartData[*].x）
                             if let detailDict = detailRaw.anyValue as? [String: Any] {

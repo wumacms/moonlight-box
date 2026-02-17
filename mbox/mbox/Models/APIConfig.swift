@@ -22,6 +22,9 @@ final class APIConfig: Identifiable {
     var listMappingData: Data?
     /// 详情字段映射：标准 UI 属性 -> 后端 JSON Key
     var detailMappingData: Data?
+    
+    var httpMethod: String = "GET"
+    var headersData: Data?
 
     var listMapping: [String: String] {
         get {
@@ -49,12 +52,27 @@ final class APIConfig: Identifiable {
         }
     }
 
+    var headers: [String: String] {
+        get {
+            guard let data = headersData,
+                  let decoded = try? JSONDecoder().decode([String: String].self, from: data) else {
+                return [:]
+            }
+            return decoded
+        }
+        set {
+            headersData = try? JSONEncoder().encode(newValue)
+        }
+    }
+
     init(
         id: UUID = UUID(),
         name: String = "",
         listAPIURL: String = "",
         detailAPIURL: String? = nil,
         componentType: String = "card",
+        httpMethod: String = "GET",
+        headers: [String: String]? = nil,
         listMapping: [String: String]? = nil,
         detailMapping: [String: String]? = nil,
         createdAt: Date = Date(),
@@ -65,6 +83,8 @@ final class APIConfig: Identifiable {
         self.listAPIURL = listAPIURL
         self.detailAPIURL = detailAPIURL
         self.componentType = componentType
+        self.httpMethod = httpMethod
+        self.headersData = try? JSONEncoder().encode(headers ?? [:])
         self.createdAt = createdAt
         self.updatedAt = updatedAt
         self.listMappingData = try? JSONEncoder().encode(listMapping ?? APIConfig.defaultListMapping(for: componentType))

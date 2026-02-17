@@ -59,7 +59,9 @@ struct HomeView: View {
                     itemId: detail.itemId,
                     componentType: detail.componentType,
                     detailMapping: detail.detailMapping,
-                    chartListDataJSON: detail.chartListDataJSON
+                    chartListDataJSON: detail.chartListDataJSON,
+                    httpMethod: detail.httpMethod,
+                    headers: detail.headers
                 )
             }
         }
@@ -171,7 +173,9 @@ struct HomeView: View {
                     itemId: item.item.id,
                     componentType: item.componentType,
                     detailMapping: item.detailMapping,
-                    chartListDataJSON: item.componentType == "chart" ? chartListDataJSON(from: item.item) : nil
+                    chartListDataJSON: item.componentType == "chart" ? chartListDataJSON(from: item.item) : nil,
+                    httpMethod: item.httpMethod,
+                    headers: item.headers
                 )
             }
         } label: {
@@ -217,7 +221,11 @@ struct HomeView: View {
             for config in configs {
                 let sourceName = config.name.isEmpty ? config.listAPIURL : config.name
                 do {
-                    let (raw, _) = try await apiService.fetchList(urlString: config.listAPIURL)
+                    let (raw, _) = try await apiService.fetchList(
+                        urlString: config.listAPIURL,
+                        method: config.httpMethod,
+                        headers: config.headers
+                    )
                     let list = MappingEngine.parseList(rawItems: raw, fieldMapping: config.listMapping)
                     let mapped = list.enumerated().map { offset, item in
                         let resolvedDetailURL = config.detailAPIURL ?? inferDetailURL(from: config.listAPIURL)
@@ -227,7 +235,9 @@ struct HomeView: View {
                             componentType: config.componentType,
                             listMapping: config.listMapping,
                             detailMapping: config.detailMapping,
-                            detailAPIURL: resolvedDetailURL
+                            detailAPIURL: resolvedDetailURL,
+                            httpMethod: config.httpMethod,
+                            headers: config.headers
                         )
                     }
                     grouped.append(HomeSection(id: config.id.uuidString, title: sourceName, items: mapped))
@@ -304,6 +314,8 @@ private struct HomeListEntry: Identifiable {
     let listMapping: [String: String]
     let detailMapping: [String: String]
     let detailAPIURL: String?
+    let httpMethod: String
+    let headers: [String: String]
 }
 
 private struct DetailDestination: Identifiable, Hashable {
@@ -312,6 +324,8 @@ private struct DetailDestination: Identifiable, Hashable {
     let componentType: String
     let detailMapping: [String: String]
     let chartListDataJSON: String?
+    let httpMethod: String
+    let headers: [String: String]
 
     var id: String { "\(detailURL)|\(itemId)|\(componentType)" }
 }
