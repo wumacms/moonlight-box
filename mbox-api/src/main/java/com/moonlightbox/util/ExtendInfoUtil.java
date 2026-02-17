@@ -8,13 +8,23 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * 将 DB 中的 extendInfo 字符串（JSON）解析为 Map&lt;String, String&gt;，与前端 extendInfo 协议一致
+ * 将 DB 中的 extendInfo 字符串（JSON）解析为 Map，与前端 extendInfo 协议一致
  */
 public final class ExtendInfoUtil {
 
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
-    public static Map<String, String> parse(String extendInfo) {
+    /**
+     * 解析为 Map<String, Object>，支持嵌套结构
+     */
+    public static Map<String, Object> parse(String extendInfo) {
+        return parseObject(extendInfo);
+    }
+
+    /**
+     * 解析为 Map<String, String>，仅包含基础类型且转换为字符串
+     */
+    public static Map<String, String> parseToStringMap(String extendInfo) {
         Map<String, Object> parsed = parseObject(extendInfo);
         if (parsed.isEmpty()) {
             return Collections.emptyMap();
@@ -22,7 +32,8 @@ public final class ExtendInfoUtil {
         Map<String, String> out = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : parsed.entrySet()) {
             Object value = entry.getValue();
-            if (value == null) continue;
+            if (value == null)
+                continue;
             if (value instanceof String || value instanceof Number || value instanceof Boolean) {
                 out.put(entry.getKey(), String.valueOf(value));
             }
@@ -35,7 +46,8 @@ public final class ExtendInfoUtil {
             return Collections.emptyMap();
         }
         try {
-            return MAPPER.readValue(extendInfo, new TypeReference<Map<String, Object>>() {});
+            return MAPPER.readValue(extendInfo, new TypeReference<Map<String, Object>>() {
+            });
         } catch (Exception e) {
             return Collections.emptyMap();
         }

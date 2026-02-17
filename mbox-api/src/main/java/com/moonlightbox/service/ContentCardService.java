@@ -2,12 +2,11 @@ package com.moonlightbox.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.moonlightbox.dto.DetailItemDTO;
+import com.moonlightbox.dto.CardDetailDTO;
 import com.moonlightbox.dto.ListItemDTO;
 import com.moonlightbox.dto.PageResult;
 import com.moonlightbox.entity.ContentCard;
 import com.moonlightbox.mapper.ContentCardMapper;
-import com.moonlightbox.util.ExtendInfoUtil;
 import com.moonlightbox.util.IdParseUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,11 +32,13 @@ public class ContentCardService {
         return new PageResult<>(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
     }
 
-    public DetailItemDTO getDetail(String id) {
+    public CardDetailDTO getDetail(String id) {
         Long pk = IdParseUtil.parseId(id);
-        if (pk == null) return null;
+        if (pk == null)
+            return null;
         ContentCard one = contentCardMapper.selectById(pk);
-        if (one == null) return null;
+        if (one == null)
+            return null;
         return toDetailItem(one);
     }
 
@@ -51,13 +52,18 @@ public class ContentCardService {
         return dto;
     }
 
-    private DetailItemDTO toDetailItem(ContentCard e) {
-        DetailItemDTO dto = new DetailItemDTO();
+    private CardDetailDTO toDetailItem(ContentCard e) {
+        CardDetailDTO dto = new CardDetailDTO();
         dto.setId(String.valueOf(e.getId()));
         dto.setTitle(e.getTitle());
+        dto.setSubtitle(e.getSubtitle());
+        dto.setImageUrl(e.getImageUrl());
+        dto.setBadge(e.getBadge());
         dto.setContent(e.getContent());
         dto.setMediaUrl(e.getMediaUrl());
-        dto.setExtendInfo(ExtendInfoUtil.parse(e.getExtendInfo()));
+        dto.setAuthor(e.getAuthor());
+        dto.setPubDate(e.getPubDate());
+        dto.setCategory(e.getCategory());
         return dto;
     }
 }

@@ -2,12 +2,11 @@ package com.moonlightbox.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.moonlightbox.dto.DetailItemDTO;
 import com.moonlightbox.dto.ListItemDTO;
 import com.moonlightbox.dto.PageResult;
+import com.moonlightbox.dto.VideoDetailDTO;
 import com.moonlightbox.entity.ContentVideo;
 import com.moonlightbox.mapper.ContentVideoMapper;
-import com.moonlightbox.util.ExtendInfoUtil;
 import com.moonlightbox.util.IdParseUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -33,11 +32,13 @@ public class ContentVideoService {
         return new PageResult<>(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
     }
 
-    public DetailItemDTO getDetail(String id) {
+    public VideoDetailDTO getDetail(String id) {
         Long pk = IdParseUtil.parseId(id);
-        if (pk == null) return null;
+        if (pk == null)
+            return null;
         ContentVideo one = contentVideoMapper.selectById(pk);
-        if (one == null) return null;
+        if (one == null)
+            return null;
         return toDetailItem(one);
     }
 
@@ -51,13 +52,18 @@ public class ContentVideoService {
         return dto;
     }
 
-    private DetailItemDTO toDetailItem(ContentVideo e) {
-        DetailItemDTO dto = new DetailItemDTO();
+    private VideoDetailDTO toDetailItem(ContentVideo e) {
+        VideoDetailDTO dto = new VideoDetailDTO();
         dto.setId(String.valueOf(e.getId()));
         dto.setTitle(e.getTitle());
+        dto.setSubtitle(e.getSubtitle());
+        dto.setImageUrl(e.getImageUrl());
+        dto.setBadge(e.getBadge());
         dto.setContent(e.getContent());
         dto.setMediaUrl(e.getMediaUrl());
-        dto.setExtendInfo(ExtendInfoUtil.parse(e.getExtendInfo()));
+        dto.setDuration(e.getDuration());
+        dto.setResolution(e.getResolution());
+        dto.setAuthor(e.getAuthor());
         return dto;
     }
 }

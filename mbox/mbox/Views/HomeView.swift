@@ -9,7 +9,7 @@ import SwiftUI
 import SwiftData
 
 struct HomeView: View {
-    @Query(sort: \APIConfig.updatedAt, order: .reverse) private var configs: [APIConfig]
+    @Query(sort: \APIConfig.createdAt, order: .forward) private var configs: [APIConfig]
     @State private var sections: [HomeSection] = []
     @State private var loading = false
     @State private var errorMessage: String?
@@ -58,6 +58,7 @@ struct HomeView: View {
                     detailURL: detail.detailURL,
                     itemId: detail.itemId,
                     componentType: detail.componentType,
+                    detailMapping: detail.detailMapping,
                     chartListDataJSON: detail.chartListDataJSON
                 )
             }
@@ -169,6 +170,7 @@ struct HomeView: View {
                     detailURL: detailURL,
                     itemId: item.item.id,
                     componentType: item.componentType,
+                    detailMapping: item.detailMapping,
                     chartListDataJSON: item.componentType == "chart" ? chartListDataJSON(from: item.item) : nil
                 )
             }
@@ -182,7 +184,7 @@ struct HomeView: View {
     @ViewBuilder
     private func itemCard(_ item: HomeListEntry) -> some View {
         if item.componentType == "chart" {
-            ChartCardView(item: item.item, fieldMapping: item.fieldMapping)
+            ChartCardView(item: item.item, fieldMapping: item.listMapping)
         } else {
             DynamicCardView(item: item.item, showPlayButton: item.componentType == "video")
         }
@@ -190,7 +192,7 @@ struct HomeView: View {
 
     private var configsSignature: String {
         configs
-            .map { "\($0.id.uuidString)-\($0.updatedAt.timeIntervalSince1970)" }
+            .map { "\($0.id.uuidString)-\($0.createdAt.timeIntervalSince1970)" }
             .joined(separator: ",")
     }
 
@@ -216,14 +218,15 @@ struct HomeView: View {
                 let sourceName = config.name.isEmpty ? config.listAPIURL : config.name
                 do {
                     let (raw, _) = try await apiService.fetchList(urlString: config.listAPIURL)
-                    let list = MappingEngine.parseList(rawItems: raw, fieldMapping: config.fieldMapping)
+                    let list = MappingEngine.parseList(rawItems: raw, fieldMapping: config.listMapping)
                     let mapped = list.enumerated().map { offset, item in
                         let resolvedDetailURL = config.detailAPIURL ?? inferDetailURL(from: config.listAPIURL)
                         return HomeListEntry(
                             id: "\(config.id.uuidString)-\(offset)-\(item.id)",
                             item: item,
                             componentType: config.componentType,
-                            fieldMapping: config.fieldMapping,
+                            listMapping: config.listMapping,
+                            detailMapping: config.detailMapping,
                             detailAPIURL: resolvedDetailURL
                         )
                     }
@@ -298,7 +301,8 @@ private struct HomeListEntry: Identifiable {
     let id: String
     let item: ListItemModel
     let componentType: String
-    let fieldMapping: [String: String]
+    let listMapping: [String: String]
+    let detailMapping: [String: String]
     let detailAPIURL: String?
 }
 
@@ -306,6 +310,7 @@ private struct DetailDestination: Identifiable, Hashable {
     let detailURL: String
     let itemId: String
     let componentType: String
+    let detailMapping: [String: String]
     let chartListDataJSON: String?
 
     var id: String { "\(detailURL)|\(itemId)|\(componentType)" }

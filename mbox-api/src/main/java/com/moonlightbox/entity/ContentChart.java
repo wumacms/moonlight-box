@@ -8,7 +8,7 @@ import lombok.Data;
 import java.time.LocalDateTime;
 
 /**
- * 图表组件 - 图表数据列表（可带简单详情）
+ * 图表组件 - 主表
  */
 @Data
 @TableName("content_chart")
@@ -18,10 +18,8 @@ public class ContentChart {
     private Long id;
     private String title;
     private String subtitle;
-    private String imageUrl;
-    private String badge;
-    private String content;
-    private String mediaUrl;
-    private String extendInfo;
+    private String chartType;
+    private String period;
+    private String unit;
     private LocalDateTime createdAt;
 }

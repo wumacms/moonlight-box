@@ -65,7 +65,7 @@ final class APIService {
     }
 
     /// 请求详情：GET {url}?id={id}
-    func fetchDetail(urlString: String, id: String) async throws -> DetailItemModel {
+    func fetchDetail(urlString: String, id: String) async throws -> JSONValue {
         guard var components = URLComponents(string: urlString) else { throw APIError.invalidURL }
         // 保留配置中已有 query，仅覆盖/追加 id，避免误写死 id=1 或丢失其他参数
         var queryItems = components.queryItems ?? []

@@ -2,26 +2,27 @@
 //  DetailItemModel.swift
 //  mbox
 //
-//  详情协议解析模型（文章/视频详情）
+//  通用的动态详情模型，支持不同结构的后端响应
 //
 
 import Foundation
 
-/// 详情接口返回协议
+/// 详情响应包装器
 struct DetailResponse: Decodable {
     let code: Int
-    let data: DetailItemModel?
+    let data: JSONValue?
 }
 
-struct DetailItemModel: Decodable {
-    let id: String?
-    let title: String?
-    let content: String?
-    let mediaUrl: String?
-    let extendInfo: [String: String]?
-
-    var safeId: String { id ?? "" }
-    var safeTitle: String { title ?? "" }
-    var safeContent: String { content ?? "" }
-    var safeMediaUrl: String? { mediaUrl.flatMap { $0.isEmpty ? nil : $0 } }
+/// 辅助扩展，方便从 JSONValue 获取字段
+extension JSONValue {
+    var dictValue: [String: JSONValue]? {
+        if case .object(let dict) = self {
+            return dict
+        }
+        return nil
+    }
+    
+    func findString(_ key: String) -> String {
+        dictValue?[key]?.stringValue ?? ""
+    }
 }

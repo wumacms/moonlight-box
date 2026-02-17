@@ -154,25 +154,16 @@ struct ChartCardView: View {
     }
 
     private func resolveChartTypeCandidate() -> String {
-        if let badge = item.uiBadge, !badge.isEmpty {
-            return badge
-        }
+        // 1. 优先使用后端 top-level 的 chartType
         if let value = item.raw["chartType"] as? String, !value.isEmpty {
             return value
         }
+        // 2. 其次使用映射到 uiBadge 的值（通常也是 chartType）
+        if let badge = item.uiBadge, !badge.isEmpty {
+            return badge
+        }
+        // 3. 其他备选字段
         if let value = item.raw["type"] as? String, !value.isEmpty {
-            return value
-        }
-        if let extendInfo = item.raw["extendInfo"] as? [String: Any],
-           let value = extendInfo["chartType"] as? String,
-           !value.isEmpty {
-            return value
-        }
-        if let extendInfoText = item.raw["extendInfo"] as? String,
-           let data = extendInfoText.data(using: .utf8),
-           let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-           let value = object["chartType"] as? String,
-           !value.isEmpty {
             return value
         }
         return ""

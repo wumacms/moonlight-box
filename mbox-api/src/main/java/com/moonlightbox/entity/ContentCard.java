@@ -22,7 +22,8 @@ public class ContentCard {
     private String badge;
     private String content;
     private String mediaUrl;
-    /** JSON 或 key=value 格式，与前端 extendInfo 对应 */
-    private String extendInfo;
+    private String author;
+    private String pubDate;
+    private String category;
     private LocalDateTime createdAt;
 }

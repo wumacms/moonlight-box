@@ -1,7 +1,7 @@
 package com.moonlightbox.controller;
 
 import com.moonlightbox.common.ApiResponse;
-import com.moonlightbox.dto.DetailItemDTO;
+import com.moonlightbox.dto.CardDetailDTO;
 import com.moonlightbox.dto.ListItemDTO;
 import com.moonlightbox.dto.PageResult;
 import com.moonlightbox.service.ContentCardService;
@@ -31,8 +31,8 @@ public class CardController {
     }
 
     @GetMapping("/detail")
-    public ResponseEntity<ApiResponse<DetailItemDTO>> detail(@RequestParam String id) {
-        DetailItemDTO detail = contentCardService.getDetail(id);
+    public ResponseEntity<ApiResponse<CardDetailDTO>> detail(@RequestParam String id) {
+        CardDetailDTO detail = contentCardService.getDetail(id);
         if (detail == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ApiResponse.fail(404, null));
         }

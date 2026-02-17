@@ -17,21 +17,30 @@ struct ListItemModel: Identifiable {
     var raw: [String: Any]  // 原始条目，便于详情请求时带 extendInfo 等
 
     static func from(json: [String: Any], mapping: [String: String]) -> ListItemModel {
-        func string(from key: String) -> String {
-            let backendKey = mapping[key] ?? key
-            if let v = json[backendKey] as? String { return v }
-            if let v = json[backendKey] as? Int { return String(v) }
-            if let v = json[backendKey] { return String(describing: v) }
+        func value(for uiKey: String) -> Any? {
+            let path = mapping[uiKey] ?? uiKey
+            if path.hasPrefix("$") {
+                return JsonPathService.shared.query(jsonValue: json, path: path)
+            } else {
+                return json[path]
+            }
+        }
+
+        func string(from uiKey: String) -> String {
+            if let v = value(for: uiKey) as? String { return v }
+            if let v = value(for: uiKey) as? Int { return String(v) }
+            if let v = value(for: uiKey) { return String(describing: v) }
             return ""
         }
-        let idKey = mapping["ui_id"] ?? "id"
-        let idVal = json[idKey].flatMap { v in (v as? String) ?? (v as? Int).map { String($0) } } ?? ""
+
+        let idVal = (value(for: "ui_id") as? String) ?? (value(for: "ui_id") as? Int).map { String($0) } ?? ""
+        
         return ListItemModel(
             id: idVal,
             uiTitle: string(from: "ui_title"),
             uiSubtitle: string(from: "ui_subtitle"),
-            uiImage: (json[mapping["ui_image"] ?? "ui_image"] as? String).flatMap { $0.isEmpty ? nil : $0 },
-            uiBadge: (json[mapping["ui_badge"] ?? "ui_badge"] as? String).flatMap { $0.isEmpty ? nil : $0 },
+            uiImage: (value(for: "ui_image") as? String).flatMap { $0.isEmpty ? nil : $0 },
+            uiBadge: (value(for: "ui_badge") as? String).flatMap { $0.isEmpty ? nil : $0 },
             raw: json
         )
     }

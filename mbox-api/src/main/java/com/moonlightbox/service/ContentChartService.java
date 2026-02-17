@@ -2,17 +2,17 @@ package com.moonlightbox.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.moonlightbox.dto.DetailItemDTO;
+import com.moonlightbox.dto.ChartDetailDTO;
 import com.moonlightbox.dto.ListItemDTO;
 import com.moonlightbox.dto.PageResult;
 import com.moonlightbox.entity.ContentChart;
+import com.moonlightbox.entity.ContentChartData;
+import com.moonlightbox.mapper.ContentChartDataMapper;
 import com.moonlightbox.mapper.ContentChartMapper;
-import com.moonlightbox.util.ExtendInfoUtil;
 import com.moonlightbox.util.IdParseUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -24,6 +24,7 @@ public class ContentChartService {
     private static final int DEFAULT_PAGE_SIZE = 10;
 
     private final ContentChartMapper contentChartMapper;
+    private final ContentChartDataMapper contentChartDataMapper;
 
     public PageResult<ListItemDTO> list(int page, int size) {
         int p = Math.max(1, page);
@@ -35,11 +36,13 @@ public class ContentChartService {
         return new PageResult<>(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
     }
 
-    public DetailItemDTO getDetail(String id) {
+    public ChartDetailDTO getDetail(String id) {
         Long pk = IdParseUtil.parseId(id);
-        if (pk == null) return null;
+        if (pk == null)
+            return null;
         ContentChart one = contentChartMapper.selectById(pk);
-        if (one == null) return null;
+        if (one == null)
+            return null;
         return toDetailItem(one);
     }
 
@@ -48,38 +51,46 @@ public class ContentChartService {
         dto.setId(String.valueOf(e.getId()));
         dto.setTitle(e.getTitle());
         dto.setSubtitle(e.getSubtitle());
-        dto.setImageUrl(e.getImageUrl());
-        dto.setBadge(e.getBadge());
-        Map<String, Object> extendInfo = ExtendInfoUtil.parseObject(e.getExtendInfo());
-        dto.setChartType(stringValue(extendInfo.get("chartType")));
-        dto.setPeriod(stringValue(extendInfo.get("period")));
-        dto.setUnit(stringValue(extendInfo.get("unit")));
-        dto.setChartData(castChartData(extendInfo.get("chartData")));
+        dto.setChartType(e.getChartType());
+        dto.setPeriod(e.getPeriod());
+        dto.setUnit(e.getUnit());
+
+        // 查询子表数据
+        List<ContentChartData> dataList = contentChartDataMapper.selectList(
+                new LambdaQueryWrapper<ContentChartData>()
+                        .eq(ContentChartData::getChartId, e.getId())
+                        .orderByAsc(ContentChartData::getSortOrder));
+
+        dto.setChartData(dataList.stream().map(d -> {
+            Map<String, Object> map = new java.util.HashMap<>();
+            map.put("x", d.getXLabel());
+            map.put("y", d.getYValue());
+            return map;
+        }).collect(Collectors.toList()));
+
         return dto;
     }
 
-    private DetailItemDTO toDetailItem(ContentChart e) {
-        DetailItemDTO dto = new DetailItemDTO();
+    private ChartDetailDTO toDetailItem(ContentChart e) {
+        ChartDetailDTO dto = new ChartDetailDTO();
         dto.setId(String.valueOf(e.getId()));
         dto.setTitle(e.getTitle());
-        dto.setContent(e.getContent());
-        dto.setMediaUrl(e.getMediaUrl());
-        dto.setExtendInfo(ExtendInfoUtil.parse(e.getExtendInfo()));
+        dto.setSubtitle(e.getSubtitle());
+        dto.setChartType(e.getChartType());
+        dto.setPeriod(e.getPeriod());
+        dto.setUnit(e.getUnit());
+
+        List<ContentChartData> dataList = contentChartDataMapper.selectList(
+                new LambdaQueryWrapper<ContentChartData>()
+                        .eq(ContentChartData::getChartId, e.getId())
+                        .orderByAsc(ContentChartData::getSortOrder));
+        dto.setChartData(dataList.stream().map(d -> {
+            Map<String, Object> map = new java.util.HashMap<>();
+            map.put("x", d.getXLabel());
+            map.put("y", d.getYValue());
+            return map;
+        }).collect(Collectors.toList()));
+
         return dto;
-    }
-
-    private String stringValue(Object value) {
-        return value == null ? null : String.valueOf(value);
-    }
-
-    @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> castChartData(Object value) {
-        if (value instanceof List<?>) {
-            List<?> list = (List<?>) value;
-            if (list.stream().allMatch(item -> item instanceof Map)) {
-                return (List<Map<String, Object>>) value;
-            }
-        }
-        return Collections.emptyList();
     }
 }

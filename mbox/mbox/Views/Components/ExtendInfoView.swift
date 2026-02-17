@@ -13,7 +13,7 @@ struct ExtendInfoView: View {
 
     private var displayKeys: [(String, String)] {
         guard let info = extendInfo, !info.isEmpty else { return [] }
-        let preferredOrder = ["author", "date", "duration", "resolution", "chartType", "period", "category", "unit"]
+        let preferredOrder = ["author", "date", "pubDate", "duration", "resolution", "chartType", "period", "category", "unit"]
         var ordered: [(String, String)] = []
         for key in preferredOrder {
             if let value = info[key], !value.isEmpty {
@@ -31,6 +31,7 @@ struct ExtendInfoView: View {
         switch key {
         case "author": return "作者"
         case "date": return "日期"
+        case "pubDate": return "发布日期"
         case "duration": return "时长"
         case "resolution": return "分辨率"
         case "chartType": return "图表类型"

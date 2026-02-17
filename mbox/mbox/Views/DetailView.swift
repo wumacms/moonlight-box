@@ -2,7 +2,7 @@
 //  DetailView.swift
 //  mbox
 //
-//  详情页：沉浸式 Banner、Markdown 正文、GET detail?id= 下钻、手势返回
+//  详情页：动态适配不同结构的详情接口数据
 //
 
 import SwiftUI
@@ -12,13 +12,57 @@ struct DetailView: View {
     let detailURL: String
     let itemId: String
     var componentType: String = "card"
+    var detailMapping: [String: String] = [:]
     var chartListDataJSON: String? = nil
-    @State private var detail: DetailItemModel?
+    @State private var detail: JSONValue?
     @State private var loading = true
     @State private var errorMessage: String?
     @Environment(\.colorScheme) private var colorScheme
 
     private let apiService = APIService()
+
+    private var detailDict: [String: JSONValue] {
+        detail?.dictValue ?? [:]
+    }
+
+    private func mappedValue(for uiKey: String) -> String {
+        // 如果用户没配置，使用标准 Key 作为默认后端字段名
+        let mapping = detailMapping[uiKey] ?? ""
+        let path = mapping.isEmpty ? uiKey : mapping
+        
+        guard let data = detail?.anyValue else { return "" }
+        
+        if path.hasPrefix("$") {
+            let result = JsonPathService.shared.query(jsonValue: data, path: path)
+            if let s = result as? String { return s }
+            if let n = result as? Double { return n.truncatingRemainder(dividingBy: 1) == 0 ? String(format: "%.0f", n) : String(n) }
+            if let n = result as? Int { return String(n) }
+            // 过滤掉 NSNull 或空描述，避免 URL 变成 "<null>"
+            if result == nil || result is NSNull { return "" }
+            return String(describing: result!)
+        } else {
+            return detail?.findString(path) ?? ""
+        }
+    }
+
+    private var title: String { mappedValue(for: "title") }
+    private var content: String { mappedValue(for: "content") }
+    private var mediaUrl: String { mappedValue(for: "mediaUrl") }
+
+    /// 将动态详情中除了核心字段外的其他字段视为扩展信息
+    private var dynamicExtendInfo: [String: String] {
+        // 核心字段：既包括代码硬编码的，也包括 mapping 中定义的后端原始 key
+        let coreUIKeys: Set<String> = ["id", "title", "content", "mediaUrl", "imageUrl", "subtitle", "badge", "chartData", "chartType"]
+        let mappedBackendKeys = Set(detailMapping.values.filter { !$0.hasPrefix("$") })
+        
+        var info: [String: String] = [:]
+        for (key, value) in detailDict {
+            if !coreUIKeys.contains(key) && !mappedBackendKeys.contains(key) {
+                info[key] = value.stringValue
+            }
+        }
+        return info
+    }
 
     var body: some View {
         ZStack {
@@ -32,22 +76,27 @@ struct DetailView: View {
                 }
             } else if let msg = errorMessage {
                 ContentUnavailableView("加载失败", systemImage: "exclamationmark.triangle", description: Text(msg))
-            } else if let d = detail {
+            } else {
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        if let media = d.safeMediaUrl, !media.isEmpty {
-                            MediaBannerView(mediaUrl: media, componentType: componentType)
+                        if !mediaUrl.isEmpty {
+                            MediaBannerView(mediaUrl: mediaUrl, componentType: componentType)
                         }
                         VStack(alignment: .leading, spacing: 12) {
-                            Text(d.safeTitle)
+                            Text(title)
                                 .font(.system(size: 24, weight: .bold))
                                 .foregroundStyle(AppTheme.primaryTextColor(colorScheme))
-                            ExtendInfoView(extendInfo: d.extendInfo)
+                            
+                            if !dynamicExtendInfo.isEmpty {
+                                ExtendInfoView(extendInfo: dynamicExtendInfo)
+                            }
+                            
                             if componentType == "chart" {
                                 chartDetailView
                             }
-                            if !d.safeContent.isEmpty {
-                                MarkdownContentView(text: d.safeContent)
+                            
+                            if !content.isEmpty {
+                                MarkdownContentView(text: content)
                             }
                         }
                         .padding(AppTheme.cardPadding)
@@ -89,6 +138,14 @@ struct DetailView: View {
     }
 
     private var chartPayload: ChartListPayload? {
+        // 先尝试从 detail 实时动态解析，因为后端结构变了
+        if let data = try? JSONEncoder().encode(detail),
+           let payload = try? JSONDecoder().decode(ChartListPayload.self, from: data),
+           !payload.chartData.isEmpty {
+            return payload
+        }
+        
+        // 兜底：从列表传递过来的 JSON 解析
         guard let chartListDataJSON,
               let data = chartListDataJSON.data(using: .utf8),
               let payload = try? JSONDecoder().decode(ChartListPayload.self, from: data) else {
@@ -105,26 +162,7 @@ struct DetailView: View {
             }
             return rows
         }
-
-        guard let chartListDataJSON,
-              let data = chartListDataJSON.data(using: .utf8),
-              let dict = try? JSONDecoder().decode([String: String].self, from: data) else {
-            return []
-        }
-        let preferredOrder = ["id", "title", "subtitle", "badge", "chartType", "period", "unit"]
-        var rows: [(String, String)] = []
-        for key in preferredOrder {
-            if let value = dict[key], !value.isEmpty {
-                rows.append((labelForKey(key), value))
-            }
-        }
-        let remaining = dict
-            .filter { !preferredOrder.contains($0.key) }
-            .sorted { $0.key < $1.key }
-        for (key, value) in remaining where !value.isEmpty {
-            rows.append((labelForKey(key), value))
-        }
-        return rows
+        return []
     }
 
     private func formatChartValue(_ value: Double, unit: String) -> String {
@@ -137,23 +175,9 @@ struct DetailView: View {
         guard !unit.isEmpty else { return formatted }
         return "\(formatted) \(unit)"
     }
-
-    private func labelForKey(_ key: String) -> String {
-        switch key {
-        case "id": return "ID"
-        case "title": return "标题"
-        case "subtitle": return "副标题"
-        case "badge": return "标签"
-        case "chartType": return "图表类型"
-        case "period": return "周期"
-        case "unit": return "单位"
-        case "imageUrl": return "图片"
-        default: return key
-        }
-    }
 }
 
-/// 简单 Markdown 正文展示（基础加粗/链接/段落）
+/// 简单 Markdown 正文展示
 struct MarkdownContentView: View {
     let text: String
     @Environment(\.colorScheme) private var colorScheme
@@ -196,12 +220,6 @@ struct MarkdownContentView: View {
     }
 }
 
-#Preview {
-    NavigationStack {
-        DetailView(detailURL: "https://api.example.com/detail", itemId: "1001", componentType: "card")
-    }
-}
-
 struct ChartListTableView: View {
     let rows: [(label: String, value: String)]
     @Environment(\.colorScheme) private var colorScheme
@@ -213,7 +231,6 @@ struct ChartListTableView: View {
                 .foregroundStyle(AppTheme.primaryTextColor(colorScheme))
             
             VStack(spacing: 0) {
-                // Header
                 HStack(spacing: 0) {
                     Text("维度")
                         .font(.system(size: 13, weight: .semibold))
@@ -222,8 +239,7 @@ struct ChartListTableView: View {
                         .padding(.horizontal, 12)
                         .padding(.vertical, 10)
                     
-                    Divider()
-                        .background(AppTheme.borderColor(colorScheme))
+                    Divider().background(AppTheme.borderColor(colorScheme))
                     
                     Text("数值")
                         .font(.system(size: 13, weight: .semibold))
@@ -234,8 +250,7 @@ struct ChartListTableView: View {
                 }
                 .background(AppTheme.secondaryBackgroundColor(colorScheme))
 
-                Divider()
-                    .background(AppTheme.borderColor(colorScheme))
+                Divider().background(AppTheme.borderColor(colorScheme))
 
                 if rows.isEmpty {
                     HStack {
@@ -255,8 +270,7 @@ struct ChartListTableView: View {
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 10)
                             
-                            Divider()
-                                .background(AppTheme.borderColor(colorScheme))
+                            Divider().background(AppTheme.borderColor(colorScheme))
                             
                             Text(row.value)
                                 .font(.system(size: 13, weight: .medium))
@@ -268,8 +282,7 @@ struct ChartListTableView: View {
                         .background(index.isMultiple(of: 2) ? AppTheme.backgroundColor(colorScheme) : AppTheme.secondaryBackgroundColor(colorScheme).opacity(0.3))
 
                         if index < rows.count - 1 {
-                            Divider()
-                                .background(AppTheme.borderColor(colorScheme))
+                            Divider().background(AppTheme.borderColor(colorScheme))
                         }
                     }
                 }
@@ -296,15 +309,7 @@ private struct ChartListPayload: Decodable {
     let chartData: [ChartPoint]
 
     private enum CodingKeys: String, CodingKey {
-        case id
-        case title
-        case subtitle
-        case imageUrl
-        case badge
-        case chartType
-        case period
-        case unit
-        case chartData
+        case id, title, subtitle, imageUrl, badge, chartType, period, unit, chartData
     }
 
     init(from decoder: Decoder) throws {
@@ -324,12 +329,10 @@ private struct ChartListPayload: Decodable {
 private struct ChartPoint: Decodable, Identifiable {
     let x: String
     let y: Double
-
     var id: String { "\(x)-\(y)" }
 
     private enum CodingKeys: String, CodingKey {
-        case x
-        case y
+        case x, y
     }
 
     init(from decoder: Decoder) throws {
@@ -366,8 +369,7 @@ private struct ChartDetailRenderView: View {
                         .foregroundStyle(.secondary)
                 }
             }
-            chartBody
-                .frame(height: 220)
+            chartBody.frame(height: 220)
             if let unit = payload.unit, !unit.isEmpty {
                 Text("单位：\(unit)")
                     .font(.caption)
@@ -382,31 +384,18 @@ private struct ChartDetailRenderView: View {
         switch normalizedType {
         case "line":
             Chart(payload.chartData) { point in
-                LineMark(
-                    x: .value("维度", point.x),
-                    y: .value("值", point.y)
-                )
-                .interpolationMethod(.catmullRom)
-                PointMark(
-                    x: .value("维度", point.x),
-                    y: .value("值", point.y)
-                )
+                LineMark(x: .value("维度", point.x), y: .value("值", point.y))
+                    .interpolationMethod(.catmullRom)
+                PointMark(x: .value("维度", point.x), y: .value("值", point.y))
             }
         case "pie":
             Chart(payload.chartData) { point in
-                SectorMark(
-                    angle: .value("值", point.y),
-                    innerRadius: .ratio(0.5),
-                    angularInset: 1
-                )
-                .foregroundStyle(by: .value("维度", point.x))
+                SectorMark(angle: .value("值", point.y), innerRadius: .ratio(0.5), angularInset: 1)
+                    .foregroundStyle(by: .value("维度", point.x))
             }
         default:
             Chart(payload.chartData) { point in
-                BarMark(
-                    x: .value("维度", point.x),
-                    y: .value("值", point.y)
-                )
+                BarMark(x: .value("维度", point.x), y: .value("值", point.y))
             }
         }
     }

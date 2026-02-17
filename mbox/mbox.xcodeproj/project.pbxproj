@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		4A9F9B2E2F448A040088AF35 /* Sextant in Frameworks */ = {isa = PBXBuildFile; productRef = 4A9F9B2D2F448A040088AF35 /* Sextant */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		4AABAEB52F42E3B400E9115D /* mbox.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = mbox.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4A9F9B2E2F448A040088AF35 /* Sextant in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = mbox;
 			packageProductDependencies = (
+				4A9F9B2D2F448A040088AF35 /* Sextant */,
 			);
 			productName = mbox;
 			productReference = 4AABAEB52F42E3B400E9115D /* mbox.app */;
@@ -95,6 +101,9 @@
 			);
 			mainGroup = 4AABAEAC2F42E3B400E9115D;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				4A9F9B2C2F448A040088AF35 /* XCRemoteSwiftPackageReference "Sextant" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 4AABAEB62F42E3B400E9115D /* Products */;
 			projectDirPath = "";
@@ -337,6 +346,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		4A9F9B2C2F448A040088AF35 /* XCRemoteSwiftPackageReference "Sextant" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/KittyMac/Sextant.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		4A9F9B2D2F448A040088AF35 /* Sextant */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 4A9F9B2C2F448A040088AF35 /* XCRemoteSwiftPackageReference "Sextant" */;
+			productName = Sextant;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 4AABAEAD2F42E3B400E9115D /* Project object */;
 }

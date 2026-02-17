@@ -22,6 +22,8 @@ public class ContentVideo {
     private String badge;
     private String content;
     private String mediaUrl;
-    private String extendInfo;
+    private String duration;
+    private String resolution;
+    private String author;
     private LocalDateTime createdAt;
 }

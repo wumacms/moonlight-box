@@ -15,24 +15,37 @@ final class APIConfig: Identifiable {
     var name: String
     var listAPIURL: String
     var detailAPIURL: String?
-    var componentType: String  // "card" | "video" | "chart" 等
+    var componentType: String  // "card"(图文列表) | "video"(视频列表) | "chart"(图表列表) 等
     var createdAt: Date
     var updatedAt: Date
+    /// 列表字段映射：标准 UI 属性 -> 后端 JSON Key
+    var listMappingData: Data?
+    /// 详情字段映射：标准 UI 属性 -> 后端 JSON Key
+    var detailMappingData: Data?
 
-    /// 字段映射：标准 UI 属性 -> 后端 JSON Key
-    /// 例如 ["ui_title": "original_title", "ui_subtitle": "summary"]
-    var fieldMappingData: Data?
-
-    var fieldMapping: [String: String] {
+    var listMapping: [String: String] {
         get {
-            guard let data = fieldMappingData,
+            guard let data = listMappingData,
                   let decoded = try? JSONDecoder().decode([String: String].self, from: data) else {
                 return APIConfig.defaultListMapping(for: componentType)
             }
             return decoded
         }
         set {
-            fieldMappingData = try? JSONEncoder().encode(newValue)
+            listMappingData = try? JSONEncoder().encode(newValue)
+        }
+    }
+
+    var detailMapping: [String: String] {
+        get {
+            guard let data = detailMappingData,
+                  let decoded = try? JSONDecoder().decode([String: String].self, from: data) else {
+                return APIConfig.defaultDetailMapping()
+            }
+            return decoded
+        }
+        set {
+            detailMappingData = try? JSONEncoder().encode(newValue)
         }
     }
 
@@ -42,7 +55,8 @@ final class APIConfig: Identifiable {
         listAPIURL: String = "",
         detailAPIURL: String? = nil,
         componentType: String = "card",
-        fieldMapping: [String: String]? = nil,
+        listMapping: [String: String]? = nil,
+        detailMapping: [String: String]? = nil,
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -53,7 +67,8 @@ final class APIConfig: Identifiable {
         self.componentType = componentType
         self.createdAt = createdAt
         self.updatedAt = updatedAt
-        self.fieldMappingData = try? JSONEncoder().encode(fieldMapping ?? APIConfig.defaultListMapping(for: componentType))
+        self.listMappingData = try? JSONEncoder().encode(listMapping ?? APIConfig.defaultListMapping(for: componentType))
+        self.detailMappingData = try? JSONEncoder().encode(detailMapping ?? APIConfig.defaultDetailMapping())
     }
 
     /// 列表项标准属性及默认后端 Key 建议
@@ -61,39 +76,29 @@ final class APIConfig: Identifiable {
     /// 图表扩展映射（可选）：用于精确指定图表数据字段
     static let standardChartKeys = ["chart_data", "chart_x", "chart_y"]
 
-    /// 按组件类型返回默认字段映射
+    /// 按组件类型返回默认列表字段映射
     static func defaultListMapping(for componentType: String) -> [String: String] {
-        switch componentType {
-        case "video":
-            return [
-                "ui_title": "title",
-                "ui_subtitle": "subtitle",
-                "ui_image": "imageUrl",
-                "ui_id": "id",
-                "ui_badge": "badge"
-            ]
-        case "chart":
-            return [
-                "ui_title": "title",
-                "ui_subtitle": "subtitle",
-                "ui_image": "imageUrl",
-                "ui_id": "id",
-                "ui_badge": "chartType",
-                "chart_data": "chartData",
-                "chart_x": "x",
-                "chart_y": "y"
-            ]
-        default:  // "card"
-            return [
-                "ui_title": "title",
-                "ui_subtitle": "subtitle",
-                "ui_image": "imageUrl",
-                "ui_id": "id",
-                "ui_badge": "badge"
-            ]
+        var mapping = [String: String]()
+        for key in standardListKeys {
+            mapping[key] = ""
         }
+        if componentType == "chart" {
+            for key in standardChartKeys {
+                mapping[key] = ""
+            }
+        }
+        return mapping
+    }
+
+    /// 返回默认详情字段映射
+    static func defaultDetailMapping() -> [String: String] {
+        var mapping = [String: String]()
+        for key in standardDetailKeys {
+            mapping[key] = ""
+        }
+        return mapping
     }
 
     /// 详情页标准属性
-    static let standardDetailKeys = ["title", "content", "mediaUrl", "id", "extendInfo"]
+    static let standardDetailKeys = ["title", "content", "mediaUrl", "id"]
 }
