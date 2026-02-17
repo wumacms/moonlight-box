@@ -27,7 +27,7 @@ struct DynamicCardView: View {
                         case .success(let image):
                             image
                                 .resizable()
-                                .aspectRatio(contentMode: .fill)
+                                .aspectRatio(1, contentMode: .fill)
                                 .frame(height: 140)
                         case .failure:
                             Rectangle()
