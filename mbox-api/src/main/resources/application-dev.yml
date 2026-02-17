@@ -1,0 +1,6 @@
+# 开发环境可覆盖数据库等配置
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/mbox?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: admin123

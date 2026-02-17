@@ -1,0 +1,73 @@
+# =========================
+# OS / Common
+# =========================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Environment / Secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.jks
+
+# =========================
+# iOS / Xcode (mbox)
+# =========================
+# User-specific Xcode data
+**/*.xcodeproj/xcuserdata/
+**/*.xcworkspace/xcuserdata/
+**/*.xcscmblueprint
+**/*.xccheckout
+
+# Build artifacts
+DerivedData/
+build/
+*.ipa
+*.dSYM
+*.dSYM.zip
+
+# Swift Package Manager
+.build/
+Packages/
+Package.resolved
+
+# CocoaPods / Carthage (if introduced later)
+Pods/
+Carthage/Build/
+
+# Fastlane outputs
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/
+fastlane/test_output/
+
+# =========================
+# Java / Maven (mbox-api)
+# =========================
+mbox-api/target/
+**/target/
+*.class
+*.jar
+*.war
+*.ear
+
+# Maven wrapper logs/cache-style artifacts
+.mvn/timing.properties
+
+# =========================
+# IDE / Editor
+# =========================
+.idea/
+.vscode/
+*.iml
+
