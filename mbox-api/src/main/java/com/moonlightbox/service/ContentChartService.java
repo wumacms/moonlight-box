@@ -3,7 +3,7 @@ package com.moonlightbox.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.moonlightbox.dto.ChartDetailDTO;
-import com.moonlightbox.dto.ListItemDTO;
+import com.moonlightbox.dto.ChartListItemDTO;
 import com.moonlightbox.dto.PageResult;
 import com.moonlightbox.entity.ContentChart;
 import com.moonlightbox.entity.ContentChartData;
@@ -26,13 +26,13 @@ public class ContentChartService {
     private final ContentChartMapper contentChartMapper;
     private final ContentChartDataMapper contentChartDataMapper;
 
-    public PageResult<ListItemDTO> list(int page, int size) {
+    public PageResult<ChartListItemDTO> list(int page, int size) {
         int p = Math.max(1, page);
         int s = size <= 0 ? DEFAULT_PAGE_SIZE : Math.min(size, 100);
         Page<ContentChart> pageReq = new Page<>(p, s);
         Page<ContentChart> result = contentChartMapper.selectPage(pageReq,
                 new LambdaQueryWrapper<ContentChart>().orderByDesc(ContentChart::getCreatedAt));
-        List<ListItemDTO> list = result.getRecords().stream().map(this::toListItem).collect(Collectors.toList());
+        List<ChartListItemDTO> list = result.getRecords().stream().map(this::toListItem).collect(Collectors.toList());
         return new PageResult<>(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
     }
 
@@ -46,8 +46,8 @@ public class ContentChartService {
         return toDetailItem(one);
     }
 
-    private ListItemDTO toListItem(ContentChart e) {
-        ListItemDTO dto = new ListItemDTO();
+    private ChartListItemDTO toListItem(ContentChart e) {
+        ChartListItemDTO dto = new ChartListItemDTO();
         dto.setId(String.valueOf(e.getId()));
         dto.setTitle(e.getTitle());
         dto.setSubtitle(e.getSubtitle());

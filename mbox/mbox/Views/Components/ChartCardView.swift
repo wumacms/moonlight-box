@@ -14,6 +14,9 @@ struct ChartCardView: View {
     @Environment(\.colorScheme) private var colorScheme
 
     private var chartType: String {
+        if let type = item.chartType, !type.isEmpty {
+            return normalizeChartType(type)
+        }
         let resolved = resolveChartTypeCandidate()
         return normalizeChartType(resolved)
     }
@@ -97,6 +100,11 @@ struct ChartCardView: View {
     }
 
     private var chartData: [ChartDatum] {
+        if let data = item.chartData, 
+           let rows = parseAnyToChartData(data, preferredX: configuredXKey, preferredY: configuredYKey), 
+           !rows.isEmpty {
+            return rows
+        }
         if let configured = chartDataFromConfiguredKeys(), !configured.isEmpty {
             return configured
         }

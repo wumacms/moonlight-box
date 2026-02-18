@@ -230,7 +230,10 @@ struct APIConfigFormView: View {
                 }
 
                 Section {
-                    ForEach(APIConfig.standardListKeys, id: \.self) { uiKey in
+                    ForEach(APIConfig.standardListKeys.filter { key in
+                        if componentType == "chart" && (key == "ui_image" || key == "ui_badge") { return false }
+                        return true
+                    }, id: \.self) { uiKey in
                         FieldMappingRow(
                             uiKey: uiKey,
                             backendKey: listMapping[uiKey] ?? "",
@@ -252,7 +255,7 @@ struct APIConfigFormView: View {
                             }
                             .font(.caption)
                             .foregroundStyle(AppTheme.accentColor(colorScheme))
-                            .disabled(config.listAPIURL.isEmpty)
+                            .disabled(listAPIURL.isEmpty)
                         }
                     }
                 }
@@ -281,7 +284,7 @@ struct APIConfigFormView: View {
                                 }
                                 .font(.caption)
                                 .foregroundStyle(AppTheme.accentColor(colorScheme))
-                                .disabled((config.detailAPIURL ?? "").isEmpty)
+                                .disabled(detailAPIURL.isEmpty)
                             }
                         }
                     }
@@ -311,7 +314,7 @@ struct APIConfigFormView: View {
                                 }
                                 .font(.caption)
                                 .foregroundStyle(AppTheme.accentColor(colorScheme))
-                                .disabled((config.detailAPIURL ?? "").isEmpty)
+                                .disabled(detailAPIURL.isEmpty)
                             }
                         }
                     } footer: {
@@ -328,7 +331,7 @@ struct APIConfigFormView: View {
                             if testLoading { Spacer(); ProgressView() }
                         }
                     }
-                    .disabled(config.listAPIURL.isEmpty || testLoading)
+                    .disabled(listAPIURL.isEmpty || testLoading)
                     if let err = testError {
                         Text(err)
                             .foregroundStyle(AppTheme.errorColor(colorScheme))
@@ -473,7 +476,12 @@ struct APIConfigFormView: View {
                     )
                     if let firstItemDict = listRaw.first {
                         let listItem = ListItemModel.from(json: firstItemDict, mapping: listMapping)
-                        let sampleId = listItem.id
+                        var sampleId = listItem.id
+                        
+                        // 兜底逻辑：如果映射后的 ID 为空，尝试直接从原始 JSON 中找 'id'
+                        if sampleId.isEmpty {
+                            sampleId = (firstItemDict["id"] as? String) ?? (firstItemDict["id"] as? Int).map { String($0) } ?? ""
+                        }
                         
                         if !sampleId.isEmpty {
                             let detailRaw = try await apiService.fetchDetail(

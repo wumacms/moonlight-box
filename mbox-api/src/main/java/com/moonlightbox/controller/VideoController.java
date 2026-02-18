@@ -1,7 +1,7 @@
 package com.moonlightbox.controller;
 
 import com.moonlightbox.common.ApiResponse;
-import com.moonlightbox.dto.ListItemDTO;
+import com.moonlightbox.dto.VideoListItemDTO;
 import com.moonlightbox.dto.PageResult;
 import com.moonlightbox.dto.VideoDetailDTO;
 import com.moonlightbox.service.ContentVideoService;
@@ -24,7 +24,7 @@ public class VideoController {
     private final ContentVideoService contentVideoService;
 
     @GetMapping("/list")
-    public ApiResponse<PageResult<ListItemDTO>> list(
+    public ApiResponse<PageResult<VideoListItemDTO>> list(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
         return ApiResponse.ok(contentVideoService.list(page, size));

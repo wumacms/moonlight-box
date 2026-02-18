@@ -38,13 +38,22 @@ struct HomeView: View {
             .navigationTitle("月光宝盒")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button {
+                        loadAllLists()
+                    } label: {
+                        Image(systemName: "arrow.clockwise")
+                            .rotationEffect(.degrees(loading ? 360 : 0))
+                            .animation(loading ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: loading)
+                    }
+                    .disabled(loading)
+
                     Picker("显示模式", selection: $displayModeRaw) {
                         Text("网格").tag(HomeDisplayMode.grid.rawValue)
                         Text("列表").tag(HomeDisplayMode.list.rawValue)
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 140)
+                    .frame(width: 100)
                 }
             }
             .onAppear {
@@ -213,6 +222,8 @@ struct HomeView: View {
         }
 
         loading = true
+        // 手动刷新时清空内容，以便展示骨架屏反馈
+        sections = []
         errorMessage = nil
         warningMessage = nil
         Task {
@@ -285,6 +296,9 @@ struct HomeView: View {
             payload["badge"] = badge
             if payload["chartType"] == nil {
                 payload["chartType"] = badge
+            }
+            if payload["period"] == nil {
+                payload["period"] = badge
             }
         }
         guard JSONSerialization.isValidJSONObject(payload),

@@ -3,7 +3,7 @@ package com.moonlightbox.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.moonlightbox.dto.CardDetailDTO;
-import com.moonlightbox.dto.ListItemDTO;
+import com.moonlightbox.dto.CardListItemDTO;
 import com.moonlightbox.dto.PageResult;
 import com.moonlightbox.entity.ContentCard;
 import com.moonlightbox.mapper.ContentCardMapper;
@@ -22,13 +22,13 @@ public class ContentCardService {
 
     private final ContentCardMapper contentCardMapper;
 
-    public PageResult<ListItemDTO> list(int page, int size) {
+    public PageResult<CardListItemDTO> list(int page, int size) {
         int p = Math.max(1, page);
         int s = size <= 0 ? DEFAULT_PAGE_SIZE : Math.min(size, 100);
         Page<ContentCard> pageReq = new Page<>(p, s);
         Page<ContentCard> result = contentCardMapper.selectPage(pageReq,
                 new LambdaQueryWrapper<ContentCard>().orderByDesc(ContentCard::getCreatedAt));
-        List<ListItemDTO> list = result.getRecords().stream().map(this::toListItem).collect(Collectors.toList());
+        List<CardListItemDTO> list = result.getRecords().stream().map(this::toListItem).collect(Collectors.toList());
         return new PageResult<>(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
     }
 
@@ -42,8 +42,8 @@ public class ContentCardService {
         return toDetailItem(one);
     }
 
-    private ListItemDTO toListItem(ContentCard e) {
-        ListItemDTO dto = new ListItemDTO();
+    private CardListItemDTO toListItem(ContentCard e) {
+        CardListItemDTO dto = new CardListItemDTO();
         dto.setId(String.valueOf(e.getId()));
         dto.setTitle(e.getTitle());
         dto.setSubtitle(e.getSubtitle());

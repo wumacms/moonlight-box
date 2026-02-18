@@ -94,18 +94,23 @@ final class APIConfig: Identifiable {
     /// 列表项标准属性及默认后端 Key 建议
     static let standardListKeys = ["ui_title", "ui_subtitle", "ui_image", "ui_id", "ui_badge"]
     /// 图表扩展映射（可选）：用于精确指定图表数据字段
-    static let standardChartKeys = ["chart_data", "chart_x", "chart_y"]
+    static let standardChartKeys = ["chart_data", "chart_x", "chart_y", "chart_type", "period", "unit"]
 
     /// 按组件类型返回默认列表字段映射
     static func defaultListMapping(for componentType: String) -> [String: String] {
-        var mapping = [String: String]()
-        for key in standardListKeys {
-            mapping[key] = ""
-        }
+        var mapping = [
+            "ui_id": "",
+            "ui_title": "",
+            "ui_subtitle": "",
+            "ui_image": "",
+            "ui_badge": ""
+        ]
         if componentType == "chart" {
-            for key in standardChartKeys {
-                mapping[key] = ""
-            }
+            // 图表类型特有字段
+            mapping["chart_data"] = ""
+            mapping["chart_type"] = ""
+            mapping["period"] = ""
+            mapping["unit"] = ""
         }
         return mapping
     }

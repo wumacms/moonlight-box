@@ -2,7 +2,7 @@ package com.moonlightbox.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.moonlightbox.dto.ListItemDTO;
+import com.moonlightbox.dto.VideoListItemDTO;
 import com.moonlightbox.dto.PageResult;
 import com.moonlightbox.dto.VideoDetailDTO;
 import com.moonlightbox.entity.ContentVideo;
@@ -22,13 +22,13 @@ public class ContentVideoService {
 
     private final ContentVideoMapper contentVideoMapper;
 
-    public PageResult<ListItemDTO> list(int page, int size) {
+    public PageResult<VideoListItemDTO> list(int page, int size) {
         int p = Math.max(1, page);
         int s = size <= 0 ? DEFAULT_PAGE_SIZE : Math.min(size, 100);
         Page<ContentVideo> pageReq = new Page<>(p, s);
         Page<ContentVideo> result = contentVideoMapper.selectPage(pageReq,
                 new LambdaQueryWrapper<ContentVideo>().orderByDesc(ContentVideo::getCreatedAt));
-        List<ListItemDTO> list = result.getRecords().stream().map(this::toListItem).collect(Collectors.toList());
+        List<VideoListItemDTO> list = result.getRecords().stream().map(this::toListItem).collect(Collectors.toList());
         return new PageResult<>(list, result.getTotal(), (int) result.getCurrent(), (int) result.getSize());
     }
 
@@ -42,8 +42,8 @@ public class ContentVideoService {
         return toDetailItem(one);
     }
 
-    private ListItemDTO toListItem(ContentVideo e) {
-        ListItemDTO dto = new ListItemDTO();
+    private VideoListItemDTO toListItem(ContentVideo e) {
+        VideoListItemDTO dto = new VideoListItemDTO();
         dto.setId(String.valueOf(e.getId()));
         dto.setTitle(e.getTitle());
         dto.setSubtitle(e.getSubtitle());

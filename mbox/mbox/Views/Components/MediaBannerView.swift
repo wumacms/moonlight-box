@@ -71,14 +71,48 @@ private struct ImageBannerView: View {
 private struct VideoBannerView: View {
     let url: URL
     @State private var player: AVPlayer?
+    @State private var isLoading = true
+    @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
-        VideoPlayer(player: player)
-            .onAppear {
-                player = AVPlayer(url: url)
+        ZStack {
+            VideoPlayer(player: player)
+                .onAppear {
+                    let playerItem = AVPlayerItem(url: url)
+                    let newPlayer = AVPlayer(playerItem: playerItem)
+                    player = newPlayer
+                    
+                    // 监听视频是否准备好播放
+                    playerItem.publisher(for: \.status)
+                        .receive(on: DispatchQueue.main)
+                        .sink { status in
+                            if status == .readyToPlay {
+                                isLoading = false
+                            }
+                        }
+                        .store(in: &cancellables)
+                }
+                .onDisappear {
+                    player?.pause()
+                }
+
+            if isLoading {
+                Rectangle()
+                    .fill(AppTheme.secondaryBackgroundColor(colorScheme))
+                    .overlay {
+                        VStack(spacing: 8) {
+                            ProgressView()
+                            Text("视频解析中...")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
             }
-            .onDisappear {
-                player?.pause()
-            }
+        }
     }
+
+    // 使用 State 保持订阅，防止被释放
+    @State private var cancellables = Set<AnyCancellable>()
 }
+
+import Combine

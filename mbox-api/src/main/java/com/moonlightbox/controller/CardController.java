@@ -2,7 +2,7 @@ package com.moonlightbox.controller;
 
 import com.moonlightbox.common.ApiResponse;
 import com.moonlightbox.dto.CardDetailDTO;
-import com.moonlightbox.dto.ListItemDTO;
+import com.moonlightbox.dto.CardListItemDTO;
 import com.moonlightbox.dto.PageResult;
 import com.moonlightbox.service.ContentCardService;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +24,7 @@ public class CardController {
     private final ContentCardService contentCardService;
 
     @GetMapping("/list")
-    public ApiResponse<PageResult<ListItemDTO>> list(
+    public ApiResponse<PageResult<CardListItemDTO>> list(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
         return ApiResponse.ok(contentCardService.list(page, size));

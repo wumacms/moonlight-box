@@ -2,7 +2,7 @@ package com.moonlightbox.controller;
 
 import com.moonlightbox.common.ApiResponse;
 import com.moonlightbox.dto.ChartDetailDTO;
-import com.moonlightbox.dto.ListItemDTO;
+import com.moonlightbox.dto.ChartListItemDTO;
 import com.moonlightbox.dto.PageResult;
 import com.moonlightbox.service.ContentChartService;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +24,7 @@ public class ChartController {
     private final ContentChartService contentChartService;
 
     @GetMapping("/list")
-    public ApiResponse<PageResult<ListItemDTO>> list(
+    public ApiResponse<PageResult<ChartListItemDTO>> list(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
         return ApiResponse.ok(contentChartService.list(page, size));

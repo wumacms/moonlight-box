@@ -14,6 +14,13 @@ struct ListItemModel: Identifiable {
     var uiSubtitle: String
     var uiImage: String?
     var uiBadge: String?
+    
+    // 图表专用字段
+    var chartType: String?
+    var period: String?
+    var unit: String?
+    var chartData: Any? // [[String: Any]]
+    
     var raw: [String: Any]  // 原始条目，便于详情请求时带 extendInfo 等
 
     static func from(json: [String: Any], mapping: [String: String]) -> ListItemModel {
@@ -41,6 +48,10 @@ struct ListItemModel: Identifiable {
             uiSubtitle: string(from: "ui_subtitle"),
             uiImage: (value(for: "ui_image") as? String).flatMap { $0.isEmpty ? nil : $0 },
             uiBadge: (value(for: "ui_badge") as? String).flatMap { $0.isEmpty ? nil : $0 },
+            chartType: value(for: "chart_type") as? String ?? (value(for: "chartType") as? String),
+            period: value(for: "period") as? String,
+            unit: value(for: "unit") as? String,
+            chartData: value(for: "chart_data") ?? value(for: "chartData"),
             raw: json
         )
     }
